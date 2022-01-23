@@ -183,10 +183,6 @@ class MarinhaScraper(BaseScraper):
 
         with open(file=self.db_path, mode="w", encoding="utf8") as db_file:
             json.dump(obj=output_data, fp=db_file, indent=4)
-        a = 1
-        # 2 passadas: 1a vê se tem as notícias
-        # 2a só extrai a imagem da notícia nova
-        # Fazer em json
 
 
 if __name__ == "__main__":
