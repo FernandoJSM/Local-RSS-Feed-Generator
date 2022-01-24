@@ -2,13 +2,26 @@ from dataclasses import dataclass
 
 
 @dataclass
+class FeedInfo:
+    """
+    Contém dados do feed RSS
+    """
+
+    title: str
+    link: str
+    description: str
+    language: str
+    image: str
+
+
+@dataclass
 class FeedItem:
     """
     Contém dados para item de um feed RSS
     """
+
     title: str
     link: str
-    image: str or None
     description: str
     author: str or None
     guid: str

@@ -1,10 +1,11 @@
+import utils
 from scrapers.base_scraper import BaseScraper
 import logging
 import requests
 from bs4 import BeautifulSoup
 from bs4 import element
 from datetime import datetime
-from scrapers.feed_item import FeedItem
+from scrapers.feed_data import FeedItem
 import json
 import dataclasses
 
@@ -16,17 +17,18 @@ class MarinhaScraper(BaseScraper):
 
     def __init__(
         self,
-        name,
+        feed_info,
         database_path,
         max_items,
         url="https://www.marinha.mil.br/todas-noticias",
     ):
         """
-        name (str): Nome do scraper
+        feed_info (FeedInfo obj): Dados do feed
         database_path (str): Caminho do arquivo json do banco de dados
         max_items (int): Quantidade máxima de notícias armazenadas
         url (str): URL da página de notícias da Marinha do Brasil
         """
+        self.feed_info = feed_info
         self.db_path = database_path
         self.max_items = max_items
         self.url = url
@@ -38,7 +40,7 @@ class MarinhaScraper(BaseScraper):
             datefmt="%d-%m-%Y %H:%M:%S",
         )
 
-        self.logger = logging.getLogger(name=name)
+        self.logger = logging.getLogger(name=feed_info.title)
 
     def get_news_list(self, page_number):
         """
@@ -100,7 +102,6 @@ class MarinhaScraper(BaseScraper):
                 FeedItem(
                     title=title,
                     link=link,
-                    image=None,
                     description=title,
                     author=author,
                     guid=link,
@@ -109,37 +110,6 @@ class MarinhaScraper(BaseScraper):
             )
 
         return feed_items
-
-    def find_image(self, news):
-        """
-            Busca o link de uma imagem na notícia de entrada
-        Args:
-            news (FeedItem): Notícia com os dados capturados
-        Returns:
-            image_url (str): Url com a primeira imagem da notícia
-        """
-        self.logger.info(msg=f'Acessando a página da notícia "{news.title}"...')
-        webpage = self.session.get(url=news.link)
-
-        if webpage.status_code != 200:
-            self.logger.info(msg="Não foi possível acessar a página")
-            return None
-
-        self.logger.info(msg="Página acessada, buscando por imagens...")
-        soup = BeautifulSoup(markup=webpage.text, features="html.parser")
-        news_body = soup.find_all(
-            name="div",
-            attrs={
-                "class": "field field-name-body field-type-text-with-summary field-label-hidden"
-            },
-        )[0]
-        images = news_body.find_all(name="img")
-
-        if images:
-            image_url = images[0].attrs["src"]
-            return image_url
-        else:
-            return None
 
     def scrape_page(self):
         """
@@ -171,14 +141,6 @@ class MarinhaScraper(BaseScraper):
             else:
                 colected_items.extend(items_to_add)
 
-        with open(file=self.db_path, mode="r", encoding="utf8") as db_file:
-            stored_data = json.load(db_file)
-
-        for news in colected_items:
-            search = (item for item in stored_data if item["title"] == news.title)
-            if next(search, None) is None:
-                news.image = self.find_image(news=news)
-
         output_data = [dataclasses.asdict(news) for news in colected_items]
 
         with open(file=self.db_path, mode="w", encoding="utf8") as db_file:
@@ -186,8 +148,19 @@ class MarinhaScraper(BaseScraper):
 
 
 if __name__ == "__main__":
+    from scrapers.feed_data import FeedInfo
+
+    marinha_info = FeedInfo(
+        title="Marinha do Brasil",
+        link="https://www.marinha.mil.br",
+        description="Notícias da Marinha do Brasil",
+        language="pt-br",
+        image="https://www.marinha.mil.br/sites/default/files/favicon-logomarca-mb.ico",
+    )
     scraper = MarinhaScraper(
-        name="Marinha do Brasil", database_path="../data/marinha.json", max_items=30
+        feed_info=marinha_info,
+        database_path=utils.get_data_filepath(filename="marinha.json"),
+        max_items=30,
     )
 
     scraper.scrape_page()

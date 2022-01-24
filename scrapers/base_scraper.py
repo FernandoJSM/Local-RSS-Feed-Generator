@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from scrapers.feed_item import FeedItem
+from scrapers.feed_data import FeedItem
 
 
 class BaseScraper(ABC):
